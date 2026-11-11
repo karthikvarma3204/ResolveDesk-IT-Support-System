@@ -1,80 +1,56 @@
-# ResolveDesk — IT Support Ticket Management & Analytics
+# ResolveDesk — IT Support & Access Management
 
-A responsive, AI-assisted **learning portfolio project** for managing IT service requests. Built with Python, Flask, SQLAlchemy, HTML, CSS and SQLite (MySQL optional).
+An AI-assisted Python/Flask learning portfolio project combining help-desk workflows, login, password hashing and **role-based access control (RBAC)**.
 
-> **Demo only — not production-ready.** This project does not implement authentication, role-based access controls, CSRF protection, or an audit log. Never enter confidential customer or company information.
+> **Educational project, not enterprise IAM software.** No penetration test or external security audit has been performed.
 
 ## Features
-- Dashboard showing total tickets, open/in-progress/resolved counts, priority and category breakdowns
-- Create requests with category, priority, requester, title and description
-- Search by ticket title and filter by status or priority
-- Update ownership, status, priority and resolution notes
-- Require resolution notes before marking tickets resolved or closed
-- JSON stats endpoint at `/api/stats`
-- Five optional sample tickets for a demonstration
-- Responsive interface and automated HTTP workflow tests
+- Username/password login with hashed passwords (Werkzeug)
+- Server-side role-based permissions and least-privilege access controls
+- **Administrator:** View tickets, create and resolve tickets, provision users and assign roles
+- **Support Agent:** View, create and resolve tickets; no user-administration access
+- **Viewer:** Read-only tickets and dashboard; cannot change any records
+- CSRF tokens for state-changing forms; HttpOnly, SameSite session cookies; optional Secure cookies for HTTPS
+- SQLAlchemy ticket management, filtering, ticket analytics and a protected JSON stats API
+- Basic response security headers and automated access-control tests
 
-## Technologies
-Python 3.10+, Flask, Flask-SQLAlchemy, SQLAlchemy, SQLite, Jinja2, HTML and CSS. Optional MySQL through PyMySQL. Pytest and GitHub Actions for automated tests.
+## Role / permission table
 
-## Run on Windows (PowerShell)
-```powershell
-py -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-Copy-Item .env.example .env
-flask --app app seed
-flask --app app run --debug
-```
-Open **http://127.0.0.1:5000**.
+| Feature | Admin | Agent | Viewer | Anonymous |
+| --- | --- | --- | --- | --- |
+| View tickets and analytics | Yes | Yes | Yes | No |
+| Create/update tickets | Yes | Yes | No | No |
+| Provision users and roles | Yes | No | No | No |
 
-## Run on macOS or Linux
+## Local setup
+
+Requires Python 3.10+.
+
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+python -m venv .venv
+# On Windows PowerShell: .venv\Scripts\Activate.ps1
+# On macOS/Linux: source .venv/bin/activate
 python -m pip install -r requirements.txt
-cp .env.example .env
+# Copy .env.example to .env and change SECRET_KEY to a strong value
+flask --app app create-admin
 flask --app app seed
-flask --app app run --debug
+flask --app app run
 ```
 
-## Run tests
+Visit http://127.0.0.1:5000/login. The `create-admin` command prompts for a username and password; passwords must be at least 12 characters. Create additional users in **Manage users**. No default credentials are committed.
+
+## Tests
+
 ```bash
 python -m pytest -q
 ```
-CI also runs the tests using Python 3.10 and 3.12 on every push and pull request.
 
-## Optional MySQL
-Create a database:
-```sql
-CREATE DATABASE supportdesk CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-Edit `.env` and set:
-```env
-DATABASE_URL=mysql+pymysql://USERNAME:PASSWORD@localhost:3306/supportdesk
-```
-URL-encode special characters in your database password. SQLite works automatically if the `.env.example` defaults are kept.
+GitHub Actions tests Python 3.10 and 3.12 on commits.
 
-## How it works
-A user submits a form. Flask checks required fields and allowed categories/priorities, then SQLAlchemy saves the record to the database. The ticket list queries and filters the database. The dashboard groups tickets by status, category and priority. Support staff can assign, update, and resolve tickets; resolutions require written notes. The stats endpoint returns JSON summary data.
+## Stack
+Python, Flask, Flask-SQLAlchemy, Werkzeug, SQLite (optional MySQL using PyMySQL), Jinja2, HTML/CSS, pytest, GitHub Actions.
 
-## Files
-- `app.py` — Flask routes, ticket model, validation, sample-data command
-- `templates/` — Jinja HTML pages
-- `static/style.css` — dashboard and responsive interface
-- `tests/test_app.py` — basic workflow checks
-- `.github/workflows/tests.yml` — continuous integration test matrix
-- `.env.example` — local configuration template (never commit your real `.env`)
+## Security limitations
+This is a learning demonstration, **not a production-ready or formally compliant IAM platform**. It does not include MFA, SSO, login rate-limiting, password reset, audit history, account lockout, database migrations or external security testing. Use HTTPS and a strong SECRET_KEY for any nonlocal demo. The roles are enforced by Flask routes; this is not enterprise identity federation.
 
-## Demo walkthrough
-1. Seed sample tickets and open the dashboard.
-2. Create a high-priority request.
-3. Filter tickets by priority and search.
-4. Assign it and change the status to In Progress.
-5. Add resolution notes and mark it Resolved.
-6. Check the dashboard and `/api/stats`.
-
-## Current limitations and improvements
-This is a training project, not a deployed ITSM product. Before production use it would need authentication, RBAC, CSRF protection, database migrations, audit history, monitoring, pagination and deployment hardening.
-
-**Project integrity:** Code and configuration were prepared using AI assistance. Do not claim independent implementation or runtime validation unless you have personally reviewed and tested it. The included GitHub Actions workflow reports automated test results on the repository's Actions tab.
+**Portfolio note:** Created with AI assistance; review the code and explain the authentication and authorization flow accurately during interviews.
