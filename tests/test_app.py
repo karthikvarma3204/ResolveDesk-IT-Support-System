@@ -87,3 +87,16 @@ def test_logout_revokes_session(client):
     login(client)
     assert client.post('/logout',data={'csrf_token':token(client)}).status_code == 302
     assert client.get('/').status_code == 302
+
+def test_metrics_endpoint_requires_admin(client):
+    assert client.get('/api/metrics').status_code == 302
+    login(client, 'viewer')
+    assert client.get('/api/metrics').status_code == 403
+    client.post('/logout', data={'csrf_token':token(client)})
+    login(client, 'admin')
+    response = client.get('/api/metrics')
+    assert response.status_code == 200
+    assert response.json['request_count'] >= 1
+    assert 'average_response_ms' in response.json
+    assert 'response_codes' in response.json
+    assert response.json['source'] == 'in-process demo counters'
