@@ -39,13 +39,17 @@ flask --app app run
 
 Visit http://127.0.0.1:5000/login. The `create-admin` command prompts for a username and password; passwords must be at least 12 characters. Create additional users in **Manage users**. No default credentials are committed.
 
+## Observability and metrics (demo)
+
+The application logs a structured line per HTTP request (route endpoint, status code, elapsed milliseconds) without recording request bodies or passwords. The admin-only `/api/metrics` JSON endpoint reports in-process request count, average request duration and HTTP response status counts. These counters reset at process restart and are not centralized production telemetry. `/api/stats` shows ticket workflow metrics.
+
 ## Tests
 
 ```bash
-python -m pytest -q
+python -m pytest -q --cov=app --cov-report=term-missing
 ```
 
-GitHub Actions tests Python 3.10 and 3.12 on commits.
+GitHub Actions tests Python 3.10 and 3.12 on commits and prints measured test coverage. Consult the latest CI log for the actual value; coverage is not a guarantee of test quality.
 
 ## Stack
 Python, Flask, Flask-SQLAlchemy, Werkzeug, SQLite (optional MySQL using PyMySQL), Jinja2, HTML/CSS, pytest, GitHub Actions.
