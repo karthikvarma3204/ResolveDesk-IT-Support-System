@@ -20,7 +20,7 @@ Maintain a learning-scale Flask IT support application with user login, role-bas
 5. Include CSRF tokens on state-changing forms.
 6. Keep SQLAlchemy database operations consistent; do not interpolate untrusted SQL.
 7. Add tests for successful operations, invalid inputs and permission denial.
-8. Run `python -m pytest -q`; never claim tests passed unless they actually ran.
+8. Run `python -m pytest -q --cov=app --cov-report=term-missing`; never claim tests passed unless they actually ran.
 9. Explain changes, risks, untested paths and limitations in the pull-request description.
 
 ## Permission requirements
