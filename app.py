@@ -1,6 +1,9 @@
 import os
 import secrets
 import hmac
+import time
+from collections import Counter
+from threading import Lock
 import click
 from functools import wraps
 from datetime import datetime, timezone
@@ -77,6 +80,8 @@ def create_app(test_config=None):
     )
     if test_config:
         app.config.update(test_config)
+    request_metrics = Counter()
+    metrics_lock = Lock()
     db.init_app(app)
     with app.app_context():
         db.create_all()
@@ -84,6 +89,7 @@ def create_app(test_config=None):
 
     @app.before_request
     def check_security():
+        g.request_start = time.perf_counter()
         uid = session.get('user_id')
         g.user = db.session.get(User, uid) if isinstance(uid, int) else None
         if g.user is not None and not g.user.active:
@@ -97,6 +103,12 @@ def create_app(test_config=None):
 
     @app.after_request
     def security_headers(response):
+        elapsed_ms = round((time.perf_counter() - getattr(g, 'request_start', time.perf_counter())) * 1000, 2)
+        with metrics_lock:
+            request_metrics['requests_total'] += 1
+            request_metrics['status_' + str(response.status_code)] += 1
+            request_metrics['duration_ms_total'] += elapsed_ms
+        app.logger.info('request endpoint=%s status=%s duration_ms=%.2f', request.endpoint or 'unknown', response.status_code, elapsed_ms)
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['Referrer-Policy'] = 'same-origin'
@@ -234,6 +246,13 @@ def create_app(test_config=None):
                 flash('Ticket updated.', 'success')
                 return redirect(url_for('ticket_detail', ticket_id=ticket.id))
         return render_template('ticket_detail.html', ticket=ticket, statuses=STATUSES, priorities=PRIORITIES)
+
+    @app.get('/api/metrics')
+    @roles_required('admin')
+    def metrics():
+        with metrics_lock:
+            count = request_metrics['requests_total']
+            return jsonify(request_count=count, average_response_ms=round(request_metrics['duration_ms_total'] / count, 2) if count else 0, response_codes={k[7:]: v for k, v in request_metrics.items() if k.startswith('status_')}, source='in-process demo counters')
 
     @app.route('/api/stats')
     @login_required
